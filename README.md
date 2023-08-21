@@ -34,5 +34,12 @@ Connect to mysql container and execute slow query:
 ```mysql
 select sleep(5);
 ```
-Go to `localhost:9000` to see logs in GrayLog:
+
+Inside Graylog's web interface `localhost:9000`:
+
+- Go to System -> Inputs.
+- Select Beats from the drop-down list and click on Launch new input.
+- Fill out the necessary details, like the bind address (0.0.0.0 to listen on all interfaces) and the port (e.g., 5044).
+- Start the input. Filebeat should now be able to send logs to this input.
+- 
 ![alt_text](./docs/graylog.png)
