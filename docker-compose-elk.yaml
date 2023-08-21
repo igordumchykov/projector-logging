@@ -1,0 +1,61 @@
+version: '3.6'
+services:
+  mysql:
+    image: mysql:8.0
+    restart: always
+    env_file: configuration.env
+    command: --default-authentication-plugin=mysql_native_password --slow-query-log=1 --long-query-time=2 --slow-query-log-file=/var/log/mysql/mysql-slow.log
+    ports:
+      - '3306:3306'
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./logs:/var/log/mysql
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:7.16.2
+    env_file: configuration.env
+    container_name: filebeat
+    restart: always
+    user: root
+    volumes:
+      - ./config/filebeat/elk.yml:/usr/share/filebeat/filebeat.yml
+      - ./logs:/var/log/mysql
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.16.2
+    container_name: elasticsearch
+    env_file: configuration.env
+    volumes:
+      - ./config/elasticsearch/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro,z
+      - elasticsearch_data:/usr/share/elasticsearch/data:z
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    environment:
+      discovery.type: single-node
+  logstash:
+    image: docker.elastic.co/logstash/logstash:7.16.2
+    env_file: configuration.env
+    container_name: logstash
+    volumes:
+      - ./config/logstash/logstash.yml:/usr/share/logstash/config/logstash.yml:ro,z
+      - ./config/logstash/pipeline:/usr/share/logstash/pipeline:ro,z
+    ports:
+      - "5044:5044"
+      - "5001:5000/tcp"
+      - "5001:5000/udp"
+      - "9600:9600"
+    depends_on:
+      - elasticsearch
+  kibana:
+    image: docker.elastic.co/kibana/kibana:7.16.2
+    container_name: kibana
+    env_file: configuration.env
+    volumes:
+      - ./config/kibana/kibana.yml:/usr/share/kibana/config/kibana.yml:ro,z
+    ports:
+      - "5601:5601"
+    depends_on:
+      - elasticsearch
+
+volumes:
+  mysql_data: { }
+  elasticsearch_data: {}

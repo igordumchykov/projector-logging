@@ -1,0 +1,63 @@
+version: '3.6'
+services:
+  mysql:
+    image: mysql:8.0
+    restart: always
+    env_file: configuration.env
+    command: --default-authentication-plugin=mysql_native_password --slow-query-log=1 --long-query-time=2 --slow-query-log-file=/var/log/mysql/mysql-slow.log
+    ports:
+      - '3306:3306'
+    volumes:
+      - ./logs:/var/log/mysql
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:7.16.2
+    container_name: filebeat
+    restart: always
+    user: root
+    volumes:
+      - ./config/filebeat/graylog.yml:/usr/share/filebeat/filebeat.yml
+      - ./logs:/var/log/mysql
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.16.2
+    container_name: elasticsearch
+    env_file: configuration.env
+    volumes:
+      - ./config/elasticsearch/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro,z
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    environment:
+      discovery.type: single-node
+  graylog:
+    image: graylog/graylog:4.2
+    container_name: graylog
+    env_file: configuration.env
+    entrypoint: /usr/bin/tini -- wait-for-it admin:admin@elasticsearch:9200 --  /docker-entrypoint.sh
+    restart: always
+    depends_on:
+      - elasticsearch
+      - mongo
+    ports:
+      - "9000:9000"
+      - "1514:1514"
+      - "1514:1514/udp"
+      - "12201:12201"
+      - "12201:12201/udp"
+      - "5044:5044"
+  mongo:
+    image: mongo:latest
+    container_name: mongo
+    volumes:
+      - ./data/mongo:/data/db
+    ports:
+      - "27017:27017"
+
+volumes:
+  mysql:
+    driver: local
+  mongo:
+    driver: local
+  elasticsearch:
+    driver: local
+  graylog:
+    driver: local
