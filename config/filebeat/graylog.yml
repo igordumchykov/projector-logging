@@ -13,6 +13,3 @@ setup.dashboard.enabled: false
 
 output.logstash:
   hosts: ["graylog:5044"]
-
-#output.elasticsearch:
-#  hosts: ["elasticsearch:9200"]
